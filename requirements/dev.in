@@ -1,0 +1,11 @@
+# Local authoring / data inspection (CPU, Windows). No torch.
+#   pip-compile --generate-hashes --output-file=requirements/dev-win.txt requirements/dev.in
+datasets==3.5.0
+librosa==0.11.0
+soundfile>=0.12.1              # let the resolver pick; audiomentations drives this
+jiwer==3.0.5
+audiomentations==0.43.1        # 0.38 caps librosa<0.11 — conflicts with the librosa pin
+PyYAML==6.0.2
+huggingface_hub==0.28.0
+dvc[gdrive]==3.59.1
+pip-tools==7.5.3

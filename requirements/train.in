@@ -1,0 +1,19 @@
+# Training stack — compile ON LINUX (Colab/DGX) so the CUDA wheels resolve.
+#   pip-compile --generate-hashes --output-file=requirements/train-linux-cu124.txt requirements/train.in
+torch==2.6.0
+transformers==4.51.0
+peft==0.15.0
+datasets==3.5.0
+accelerate==1.6.0
+evaluate==0.4.3
+jiwer==3.0.5
+audiomentations==0.43.1        # 0.38 caps librosa<0.11 — conflicts with the librosa pin
+soundfile>=0.12.1              # let the resolver pick; audiomentations drives this
+librosa==0.11.0
+ctranslate2==4.5.0
+faster-whisper==1.1.0
+huggingface_hub==0.28.0
+PyYAML==6.0.2
+mlflow==2.20.3
+tensorboard==2.19.0
+dvc[gdrive]==3.59.1

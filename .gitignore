@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# DVC manages data/ and outputs/ — it writes precise .gitignore entries next to
+# each tracked output, so do NOT blanket-ignore those trees here. dvc.lock and
+# .dvc/config MUST stay tracked; they are the version pointers.
+/data/raw/hf_cache/
+mlruns/
+runs/
+
+# metrics stay in git (cache: false in dvc.yaml) so `dvc metrics diff` works
+!outputs/metrics/*.json
+
+.ipynb_checkpoints/
+.DS_Store

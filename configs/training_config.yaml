@@ -1,0 +1,87 @@
+model:
+  # base_model_id / torch_dtype / precision are per-profile (see debug + full below):
+  # a T4 has no bfloat16 and cannot hold large-v3, so the debug profile uses a
+  # smaller checkpoint in fp16 mixed precision.
+  language: bn          # Bengali prompt token — critical for code-switching
+  task: transcribe
+
+data:
+  dataset_dir: data/processed/final          # DatasetDict saved by 04_build_dataset.py
+  hub_dataset_id: ""                         # optional: user/bangla-en-meeting-asr
+  target_sampling_rate: 16000
+  min_duration_s: 1
+  max_duration_s: 30
+  # Final dataset composition targets (fractions of the merged corpus)
+  mix:
+    medibeng: 0.20
+    indicvoices: 0.40
+    common_voice: 0.25
+    fleurs: 0.15
+
+augmentation:
+  # Augment code-switched / in-domain audio only; IndicVoices + CommonVoice are already diverse.
+  sources: [medibeng]
+  n_augments: 4
+  pitch_shift: {min_semitones: -3, max_semitones: 3, p: 0.5}
+  time_stretch: {min_rate: 0.9, max_rate: 1.1, p: 0.5}
+  gaussian_noise: {min_amplitude: 0.001, max_amplitude: 0.015, p: 0.3}
+
+# Debug profile: Colab T4 smoke test — 100 samples, 5 steps.
+debug:
+  # openai/whisper-medium (769M) — closest rehearsal that fits a 15 GB T4.
+  # Drop to openai/whisper-small (244M) if the T4 OOMs or iteration feels slow.
+  base_model_id: openai/whisper-medium
+  torch_dtype: float32          # weights fp32 + fp16 autocast; loading fp16 weights
+                                # breaks the grad scaler ("cannot unscale FP16 grads")
+  bf16: false                   # T4 is Turing — no bfloat16 support
+  fp16: true
+  output_dir: outputs/whisper-bangla-lora-debug
+  max_train_samples: 100
+  max_eval_samples: 10
+  # effective batch = 2 x 8 = 16 (matches the plan's debug intent)
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 8
+  max_steps: 5
+  num_train_epochs: 1
+  eval_steps: 5
+  save_steps: 5
+  logging_steps: 1
+
+# Full profile: DGX Spark.
+full:
+  base_model_id: openai/whisper-large-v3
+  torch_dtype: bfloat16
+  bf16: true                    # Ampere/Blackwell native, stable, no grad scaler
+  fp16: false
+  output_dir: outputs/whisper-bangla-lora
+  max_train_samples: null
+  max_eval_samples: null
+  # effective batch = 64 x 1 = 64. Accumulation exists to fake a big batch on a
+  # small card; 128 GB of unified memory holds a real one. Measure samples/sec at
+  # 32 / 64 / 96 on the first run — DGX Spark is bandwidth-bound (~273 GB/s), so
+  # bigger batches stop paying off before memory runs out.
+  per_device_train_batch_size: 64
+  per_device_eval_batch_size: 32
+  gradient_accumulation_steps: 1
+  # Was on to save T4 VRAM; costs ~30% throughput and is likely unnecessary here.
+  # Try false on the first DGX run and keep it if memory allows.
+  gradient_checkpointing: true
+  max_steps: -1
+  num_train_epochs: 10
+  eval_steps: 50
+  save_steps: 200
+  logging_steps: 10
+
+common:
+  learning_rate: 1.0e-4
+  warmup_steps: 50
+  gradient_checkpointing: true
+  predict_with_generate: true
+  generation_max_length: 225
+  load_best_model_at_end: true
+  metric_for_best_model: wer
+  greater_is_better: false
+  early_stopping_patience: 3
+  report_to: mlflow
+  seed: 42

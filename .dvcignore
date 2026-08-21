@@ -1,0 +1,5 @@
+# Keep DVC from hashing the HF download cache — it is reproducible from the Hub
+# and enormous.
+data/raw/hf_cache/
+**/__pycache__/
+.ipynb_checkpoints/

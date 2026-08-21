@@ -1,0 +1,106 @@
+# DVC pipeline. Data stages are shared; train/eval/export are per-profile.
+#
+# WARNING: a bare `dvc repro` would try BOTH profiles, including the large-v3
+# DGX run. Always name the stage:
+#   dvc repro train@debug          # Colab T4
+#   dvc repro train@full           # DGX Spark
+#
+# Sources are pulled from the HF Hub, not tracked as deps — a `prepare` stage
+# will not re-run when the upstream dataset changes. Use `dvc repro -f prepare@<src>`
+# after a known upstream update.
+
+stages:
+  prepare:
+    foreach: [medibeng, indicvoices, common_voice, fleurs]
+    do:
+      cmd: python scripts/02_prepare_data.py --source ${item}
+      deps:
+        - scripts/02_prepare_data.py
+        - scripts/common.py
+      outs:
+        - data/processed/${item}
+
+  augment:
+    cmd: python scripts/03_augment.py --source medibeng
+    deps:
+      - scripts/03_augment.py
+      - scripts/common.py
+      - data/processed/medibeng
+    params:
+      - configs/training_config.yaml:
+          - augmentation
+          - common.seed
+    outs:
+      - data/augmented/medibeng
+
+  build:
+    cmd: python scripts/04_build_dataset.py
+    deps:
+      - scripts/04_build_dataset.py
+      - scripts/common.py
+      - data/augmented/medibeng
+      - data/processed/indicvoices
+      - data/processed/common_voice
+      - data/processed/fleurs
+    params:
+      - configs/training_config.yaml:
+          - data.mix
+          - common.seed
+    outs:
+      - data/processed/final
+
+  train:
+    foreach:
+      debug: {flag: "", dir: outputs/whisper-bangla-lora-debug}
+      full: {flag: "--full", dir: outputs/whisper-bangla-lora}
+    do:
+      cmd: python scripts/05_train.py ${item.flag}
+      deps:
+        - scripts/05_train.py
+        - scripts/common.py
+        - data/processed/final
+      params:
+        - configs/training_config.yaml:
+            - model
+            - common
+            - ${key}
+        - configs/lora_config.yaml:
+            - common
+            - ${key}
+      outs:
+        - ${item.dir}
+
+  evaluate:
+    foreach:
+      debug: {flag: "", dir: outputs/whisper-bangla-lora-debug}
+      full: {flag: "--full", dir: outputs/whisper-bangla-lora}
+    do:
+      cmd: >-
+        python scripts/06_eval.py ${item.flag}
+        --adapter ${item.dir}
+        --out-json outputs/metrics/${key}.json
+      deps:
+        - scripts/06_eval.py
+        - scripts/common.py
+        - data/processed/final
+        - ${item.dir}
+      metrics:
+        - outputs/metrics/${key}.json:
+            cache: false
+
+  export:
+    foreach:
+      debug: {flag: "", dir: outputs/whisper-bangla-lora-debug}
+      full: {flag: "--full", dir: outputs/whisper-bangla-lora}
+    do:
+      cmd: >-
+        python scripts/07_export.py ${item.flag}
+        --adapter ${item.dir}
+        --merged-dir outputs/merged-${key}
+        --output-dir outputs/faster-whisper-${key}
+      deps:
+        - scripts/07_export.py
+        - scripts/common.py
+        - ${item.dir}
+      outs:
+        - outputs/faster-whisper-${key}
