@@ -1,7 +1,7 @@
 """Audio augmentation to synthetically expand speaker diversity.
 
 Applied to code-switched / in-domain audio only (MediBeng, real meeting recordings).
-IndicVoices and Common Voice are already speaker-diverse — augmenting them adds
+IndicVoices and FLEURS are already speaker-diverse — augmenting them adds
 noise without adding coverage.
 
 Usage:

@@ -1,7 +1,7 @@
 """Explore each source dataset before processing.
 
 Run this first: column names, audio format and sample rates differ per source,
-and Steps 2-4 hard-code those keys. Common Voice is gated — accept its terms on
+and Steps 2-4 hard-code those keys. IndicVoices is gated — accept its terms on
 the Hub and export HF_TOKEN first.
 
 Usage:
@@ -18,18 +18,10 @@ from datasets import load_dataset
 
 SOURCES: dict[str, dict[str, Any]] = {
     "medibeng": {"path": "pr0mila-gh0sh/MediBeng", "split": "train"},
-    # trust_remote_code=True runs each repo's loading script — pinning a revision
-    # was tried but broke Common Voice (the pinned commit didn't resolve the
-    # per-language audio shards the script fetches dynamically); left unpinned.
+    # trust_remote_code=True runs each repo's loading script.
     "indicvoices": {
         "path": "ai4bharat/IndicVoices",
         "name": "bengali",
-        "split": "train",
-        "trust_remote_code": True,
-    },
-    "common_voice": {
-        "path": "mozilla-foundation/common_voice_17_0",
-        "name": "bn",
         "split": "train",
         "trust_remote_code": True,
     },

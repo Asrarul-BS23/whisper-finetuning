@@ -31,24 +31,15 @@ from common import (
 TRANSCRIPT_KEYS: dict[str, tuple[str, ...]] = {
     "medibeng": ("sentence", "transcription", "text"),
     "indicvoices": ("text", "transcript", "sentence"),
-    "common_voice": ("sentence",),
     "fleurs": ("transcription", "raw_transcription", "sentence"),
 }
 
 SOURCE_SPECS = {
     "medibeng": {"path": "pr0mila-gh0sh/MediBeng", "split": "train"},
-    # trust_remote_code=True runs each repo's loading script — pinning a revision
-    # was tried but broke Common Voice (the pinned commit didn't resolve the
-    # per-language audio shards the script fetches dynamically); left unpinned.
+    # trust_remote_code=True runs each repo's loading script.
     "indicvoices": {
         "path": "ai4bharat/IndicVoices",
         "name": "bengali",
-        "split": "train",
-        "trust_remote_code": True,
-    },
-    "common_voice": {
-        "path": "mozilla-foundation/common_voice_17_0",
-        "name": "bn",
         "split": "train",
         "trust_remote_code": True,
     },
