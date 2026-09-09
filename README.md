@@ -23,7 +23,7 @@ Edit the `.in`, never the `.txt`.
 ```powershell
 # local authoring / data inspection (CPU, Windows) — no torch
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate
 pip install -r requirements/dev-win.txt
 ```
 
