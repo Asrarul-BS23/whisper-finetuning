@@ -148,6 +148,7 @@ def build_training_args(cfg: dict) -> Seq2SeqTrainingArguments:
         eval_steps=t["eval_steps"],
         save_steps=t["save_steps"],
         save_strategy="steps",
+        save_total_limit=t["save_total_limit"],
         logging_steps=t["logging_steps"],
         load_best_model_at_end=t["load_best_model_at_end"],
         metric_for_best_model=t["metric_for_best_model"],

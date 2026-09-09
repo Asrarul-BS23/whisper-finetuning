@@ -83,6 +83,7 @@ def main() -> None:
     parser.add_argument(
         "--model", default=None, help="override the profile's checkpoint (must match --adapter)"
     )
+    parser.add_argument("--out-json", default=None, help="write metrics to this path (for DVC)")
     args = parser.parse_args()
 
     cfg, _ = load_configs(debug=not args.full, model_override=args.model)

@@ -52,7 +52,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", default="medibeng")
     parser.add_argument("--n-augments", type=int, default=cfg["augmentation"]["n_augments"])
-    parser.add_argument("--include-original", action="store_true", default=True)
+    parser.add_argument("--include-original", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--seed", type=int, default=cfg["common"]["seed"])
     args = parser.parse_args()
 

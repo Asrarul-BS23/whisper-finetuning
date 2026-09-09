@@ -93,7 +93,7 @@ settings, so the pipeline is rehearsed cheaply and only the flag changes:
 | Precision | fp32 weights + fp16 autocast | bf16 |
 | Data | 100 train / 10 eval samples | whole dataset |
 | Steps | 5 | 10 epochs, early stop |
-| Effective batch | 2 x 8 accum = 16 | 32 x 2 accum = 64 |
+| Effective batch | 2 x 8 accum = 16 | 64 x 1 accum = 64 |
 | LoRA | r=64, alpha=128 | r=128, alpha=256 |
 | Target | Colab T4, 15 GB | DGX Spark |
 
@@ -105,7 +105,7 @@ anything else.
 
 Gradient accumulation carries the effective batch on both: the T4 cannot hold
 more than ~2 30-second samples of medium at once, so 8 accumulation steps reach
-an effective 16. The DGX uses 32 x 2 = 64. Note that `max_steps: 5` counts
+an effective 16. The DGX uses 64 x 1 = 64. Note that `max_steps: 5` counts
 *optimizer* steps, so the smoke test does 5 x 16 = 80 forward passes.
 
 Two constraints this creates:

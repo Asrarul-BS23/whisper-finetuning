@@ -64,9 +64,9 @@ full:
   per_device_train_batch_size: 64
   per_device_eval_batch_size: 32
   gradient_accumulation_steps: 1
-  # Was on to save T4 VRAM; costs ~30% throughput and is likely unnecessary here.
-  # Try false on the first DGX run and keep it if memory allows.
-  gradient_checkpointing: true
+  # gradient_checkpointing inherited from common (true) — was on to save T4 VRAM;
+  # costs ~30% throughput and is likely unnecessary here. Try false on the first
+  # DGX run (set gradient_checkpointing: false here) and keep it if memory allows.
   max_steps: -1
   num_train_epochs: 10
   eval_steps: 50
@@ -76,6 +76,7 @@ full:
 common:
   learning_rate: 1.0e-4
   warmup_steps: 50
+  save_total_limit: 3      # keep only the N most-recent + best checkpoint on disk
   gradient_checkpointing: true
   predict_with_generate: true
   generation_max_length: 225

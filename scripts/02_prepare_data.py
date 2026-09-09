@@ -42,18 +42,23 @@ SOURCE_SPECS = {
         "name": "bengali",
         "split": "train",
         "trust_remote_code": True,
+        # Pinned commit — trust_remote_code executes this repo's loading script,
+        # so pin it rather than trusting whatever "main" resolves to at run time.
+        "revision": "c96f9088f138cf89d419da7e8e643e1f05c00a87",
     },
     "common_voice": {
         "path": "mozilla-foundation/common_voice_17_0",
         "name": "bn",
         "split": "train",
         "trust_remote_code": True,
+        "revision": "11dc88355e899d1bf2df74f01b904a8544a17b33",
     },
     "fleurs": {
         "path": "google/fleurs",
         "name": "bn_in",
         "split": "train",
         "trust_remote_code": True,
+        "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
     },
 }
 
