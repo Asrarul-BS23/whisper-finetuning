@@ -74,6 +74,9 @@ def process(source: str, limit: int | None, streaming: bool) -> Dataset:
     for sample in iterator:
         if limit is not None and kept >= limit:
             break
+        if sample.get("audio") is None or sample["audio"].get("array") is None:
+            dropped += 1
+            continue
         audio = resample_audio(sample["audio"]["array"], sample["audio"]["sampling_rate"])
         sentence = pick_transcript(sample, source)
         if not is_valid_sample(audio, sentence):
