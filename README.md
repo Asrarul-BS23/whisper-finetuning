@@ -145,3 +145,6 @@ numerics, or absolute WER.
 - `gradient_checkpointing_kwargs={"use_reentrant": False}` plus
   `enable_input_require_grads()` — the reentrant checkpointing path silently
   drops LoRA gradients.
+- Common Voice dropped from `data.mix` — mozilla-foundation pulled all
+  `common_voice_*` releases off HF (moved to Mozilla Data Collective, Oct 2025);
+  its 25% share was redistributed across MediBeng/IndicVoices/FLEURS.

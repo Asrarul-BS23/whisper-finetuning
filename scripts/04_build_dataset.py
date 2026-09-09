@@ -1,7 +1,9 @@
 """Merge all processed sources into one DatasetDict, honoring the mix targets.
 
 Composition target (configs/training_config.yaml → data.mix):
-  MediBeng (+augmented) 20% | IndicVoices 40% | Common Voice 25% | FLEURS 15%
+  MediBeng (+augmented) 27% | IndicVoices 53% | FLEURS 20%
+  (Common Voice dropped — mozilla-foundation pulled all common_voice_* releases
+  off HF in Oct 2025; its 25% share was redistributed across the other three.)
 
 Sources are downsampled (never upsampled) to the largest mix that keeps every
 ratio satisfiable, so the reported sizes may be smaller than what is on disk.

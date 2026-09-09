@@ -11,7 +11,7 @@
 
 stages:
   prepare:
-    foreach: [medibeng, indicvoices, common_voice, fleurs]
+    foreach: [medibeng, indicvoices, fleurs]
     do:
       cmd: python scripts/02_prepare_data.py --source ${item}
       deps:
@@ -40,7 +40,6 @@ stages:
       - scripts/common.py
       - data/augmented/medibeng
       - data/processed/indicvoices
-      - data/processed/common_voice
       - data/processed/fleurs
     params:
       - configs/training_config.yaml:

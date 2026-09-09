@@ -12,11 +12,13 @@ data:
   min_duration_s: 1
   max_duration_s: 30
   # Final dataset composition targets (fractions of the merged corpus)
+  # Common Voice dropped — mozilla-foundation pulled all common_voice_* releases
+  # off HF (moved to Mozilla Data Collective, Oct 2025); its 25% share is
+  # redistributed proportionally across the remaining three sources.
   mix:
-    medibeng: 0.20
-    indicvoices: 0.40
-    common_voice: 0.25
-    fleurs: 0.15
+    medibeng: 0.27
+    indicvoices: 0.53
+    fleurs: 0.20
 
 augmentation:
   # Augment code-switched / in-domain audio only; IndicVoices + CommonVoice are already diverse.
