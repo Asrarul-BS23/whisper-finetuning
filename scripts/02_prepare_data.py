@@ -37,10 +37,14 @@ TRANSCRIPT_KEYS: dict[str, tuple[str, ...]] = {
 SOURCE_SPECS = {
     "medibeng": {"path": "pr0mila-gh0sh/MediBeng", "split": "train"},
     # trust_remote_code=True runs each repo's loading script.
+    # split="valid" not "train" — train is 745GB across ~96 multi-GB shards,
+    # and streaming still downloads a whole shard before yielding any rows.
+    # valid is far smaller and plenty since 04_build_dataset.py reshuffles
+    # everything into fresh train/val/test splits downstream anyway.
     "indicvoices": {
         "path": "ai4bharat/IndicVoices",
         "name": "bengali",
-        "split": "train",
+        "split": "valid",
         "trust_remote_code": True,
     },
     "fleurs": {
