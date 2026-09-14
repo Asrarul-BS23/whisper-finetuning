@@ -90,7 +90,7 @@ def load_model(cfg: dict, lora_cfg: dict) -> WhisperForConditionalGeneration:
         target_modules=lora_cfg["target_modules"],
         lora_dropout=lora_cfg["lora_dropout"],
         bias=lora_cfg["bias"],
-        task_type=getattr(TaskType, lora_cfg["task_type"]),
+        task_type=getattr(TaskType, lora_cfg["task_type"]) if lora_cfg["task_type"] else None,
     )
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()

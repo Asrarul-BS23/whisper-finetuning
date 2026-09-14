@@ -11,4 +11,9 @@ common:
   target_modules: [q_proj, v_proj, k_proj, out_proj, fc1, fc2]
   lora_dropout: 0.1
   bias: none
-  task_type: SEQ_2_SEQ_LM
+  # No task_type: SEQ_2_SEQ_LM routes PEFT to PeftModelForSeq2SeqLM, whose forward()
+  # hardcodes an input_ids= kwarg for text-to-text models (T5/BART) — Whisper's
+  # forward() has no input_ids param (it takes input_features), so that crashes
+  # with "unexpected keyword argument 'input_ids'". Leaving task_type unset uses
+  # the generic PeftModel wrapper, which passes kwargs through untouched.
+  task_type: null
