@@ -105,7 +105,12 @@ def prepare_dataset(dsd: DatasetDict, processor: WhisperProcessor, train_cfg: di
         batch["input_features"] = processor.feature_extractor(
             audio["array"], sampling_rate=audio["sampling_rate"]
         ).input_features[0]
-        batch["labels"] = processor.tokenizer(batch["sentence"]).input_ids
+        # Whisper's decoder hard-caps at max_target_positions=448 — a few IndicVoices
+        # rows tokenize past that (unusually dense verbatim text for their audio
+        # length), which crashes training otherwise. Truncate rather than drop them.
+        batch["labels"] = processor.tokenizer(
+            batch["sentence"], truncation=True, max_length=448
+        ).input_ids
         return batch
 
     if train_cfg["max_train_samples"]:
