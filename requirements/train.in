@@ -1,6 +1,11 @@
 # Training stack — compile ON LINUX (Colab/DGX) so the CUDA wheels resolve.
-#   pip-compile --generate-hashes --output-file=requirements/train-linux-cu124.txt requirements/train.in
-torch==2.6.0
+# DGX Spark (GB10, Blackwell sm_121, aarch64) needs the cu130 index — the plain
+# PyPI torch wheel resolves to a CPU-only build on aarch64:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+#   pip-compile --generate-hashes --extra-index-url https://download.pytorch.org/whl/cu130 \
+#     --output-file=requirements/train-linux-cu130.txt requirements/train.in
+torch==2.6.0    # verify this version exists on the cu130 index before compiling on
+                # DGX Spark — bump if not (cu130 aarch64 wheels may start later)
 transformers==4.51.0
 peft==0.15.0
 datasets==3.5.0

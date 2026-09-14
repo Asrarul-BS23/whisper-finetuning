@@ -28,16 +28,26 @@ pip install -r requirements/dev-win.txt
 ```
 
 ```bash
-# Colab / DGX — the lock is platform-specific, so compile it there once:
+# Colab (cu124) — the lock is platform-specific, so compile it there once:
 pip install pip-tools
 pip-compile --generate-hashes --strip-extras   --output-file=requirements/train-linux-cu124.txt requirements/train.in
 pip install -r requirements/train-linux-cu124.txt   # then commit the lock
+
+# DGX Spark (GB10, Blackwell sm_121, aarch64) needs the cu130 index instead —
+# the plain PyPI torch wheel resolves to a CPU-only build on aarch64:
+pip install pip-tools
+pip-compile --generate-hashes --extra-index-url https://download.pytorch.org/whl/cu130 \
+  --output-file=requirements/train-linux-cu130.txt requirements/train.in
+pip install -r requirements/train-linux-cu130.txt   # then commit the lock
 ```
 
 The training lock **must be compiled on Linux** — the CUDA `nvidia-*` wheels
 that `torch` pulls in do not exist on Windows, so a lock compiled here would be
 silently wrong for Colab/DGX. Until it exists, the notebooks fall back to
-`pip install -r requirements/train.in` (direct pins only, transitive unpinned).
+`pip install -r requirements/train.in` (direct pins only, transitive unpinned) —
+on DGX Spark that silently installs a CPU-only `torch`; install the CUDA build
+manually first (`pip install torch torchvision torchaudio --index-url
+https://download.pytorch.org/whl/cu130`) before falling back to `train.in`.
 
 Copy `.env.example` → `.env` and set `HF_TOKEN` (Common Voice is gated and
 `push_to_hub` needs it).
