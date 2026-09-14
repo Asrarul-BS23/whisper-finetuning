@@ -90,6 +90,12 @@ def process(source: str, limit: int | None, streaming: bool) -> Dataset:
         kept += 1
 
     print(f"{source}: kept {kept}, dropped {dropped}")
+    if not rows:
+        raise SystemExit(
+            f"{source}: 0 samples kept out of {dropped} seen — every row was rejected "
+            "(missing/null audio or invalid duration/transcript). Run "
+            "01_explore_datasets.py to inspect the raw fields before retrying."
+        )
     return Dataset.from_list(rows).cast_column("audio", Audio(sampling_rate=TARGET_SR))
 
 
