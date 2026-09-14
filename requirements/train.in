@@ -1,11 +1,37 @@
 # Training stack — compile ON LINUX (Colab/DGX) so the CUDA wheels resolve.
-# DGX Spark (GB10, Blackwell sm_121, aarch64) needs the cu130 index — the plain
-# PyPI torch wheel resolves to a CPU-only build on aarch64:
-#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
-#   pip-compile --generate-hashes --extra-index-url https://download.pytorch.org/whl/cu130 \
-#     --output-file=requirements/train-linux-cu130.txt requirements/train.in
-torch==2.6.0    # verify this version exists on the cu130 index before compiling on
-                # DGX Spark — bump if not (cu130 aarch64 wheels may start later)
+#
+# torch is intentionally NOT listed below. pip has no reliable way to prefer
+# a --extra-index-url over the default PyPI index when both publish a
+# satisfying version (a real pip limitation, not a version-pin problem — we
+# hit this twice: an exact pin and a >=-range both silently resolved to
+# PyPI's CPU-only wheel instead of the CUDA one). Workflow per platform:
+#
+#   1. Install the correct CUDA torch build manually, once:
+#        Colab (cu124, x86_64):
+#          pip install torch --index-url https://download.pytorch.org/whl/cu124
+#        DGX Spark (GB10, Blackwell sm_121, aarch64, cu130):
+#          pip install torch --index-url https://download.pytorch.org/whl/cu130
+#
+#   2. Compile the lock (transformers/accelerate pull torch in transitively,
+#      so pip-compile will still resolve *some* torch version from plain
+#      PyPI here — that's expected, ignore it):
+#        pip-compile --generate-hashes --output-file=requirements/train-linux-cu130.txt requirements/train.in
+#
+#   3. Delete the transitively-resolved `torch==...` entry (and its `--hash`
+#      continuation lines) from the generated .txt before installing — it's
+#      PyPI's CPU wheel and would overwrite the CUDA build from step 1:
+#        python3 -c "
+#        import re, pathlib
+#        p = pathlib.Path('requirements/train-linux-cu130.txt')
+#        p.write_text(re.sub(r'^torch==[^\n]*(\n {4}[^\n]*)*\n', '', p.read_text(), flags=re.M))
+#        "
+#      (or just open the file and remove that block by hand — it's the
+#      `torch==...` line plus its indented `--hash=`/`# via` continuation lines)
+#
+#   4. pip install -r requirements/train-linux-cu130.txt
+#      transformers/peft/etc. declare torch as an unpinned dependency, so this
+#      will not touch the already-installed CUDA torch as long as its line is
+#      gone from the lock. Don't add "torch" back into this .in file.
 transformers==4.51.0
 peft==0.15.0
 datasets==3.5.0
