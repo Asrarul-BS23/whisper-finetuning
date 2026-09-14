@@ -34,6 +34,15 @@ TRANSCRIPT_KEYS: dict[str, tuple[str, ...]] = {
     "fleurs": ("transcription", "raw_transcription", "sentence"),
 }
 
+# Audio column name per source — most datasets call it "audio", but IndicVoices
+# names its audio-typed column "audio_filepath". Confirm against
+# 01_explore_datasets.py output before a full run, same as TRANSCRIPT_KEYS.
+AUDIO_KEYS: dict[str, str] = {
+    "medibeng": "audio",
+    "indicvoices": "audio_filepath",
+    "fleurs": "audio",
+}
+
 SOURCE_SPECS = {
     "medibeng": {"path": "pr0mila-gh0sh/MediBeng", "split": "train"},
     # trust_remote_code=True runs each repo's loading script.
@@ -70,18 +79,19 @@ def pick_transcript(sample: dict, source: str) -> str:
 
 def process(source: str, limit: int | None, streaming: bool) -> Dataset:
     spec = SOURCE_SPECS[source]
+    audio_key = AUDIO_KEYS[source]
     ds = load_dataset(**spec, streaming=streaming)
-    ds = ds.cast_column("audio", Audio(sampling_rate=TARGET_SR))
+    ds = ds.cast_column(audio_key, Audio(sampling_rate=TARGET_SR))
     iterator = iter(ds)
 
     kept, dropped, rows = 0, 0, []
     for sample in iterator:
         if limit is not None and kept >= limit:
             break
-        if sample.get("audio") is None or sample["audio"].get("array") is None:
+        if sample.get(audio_key) is None or sample[audio_key].get("array") is None:
             dropped += 1
             continue
-        audio = resample_audio(sample["audio"]["array"], sample["audio"]["sampling_rate"])
+        audio = resample_audio(sample[audio_key]["array"], sample[audio_key]["sampling_rate"])
         sentence = pick_transcript(sample, source)
         if not is_valid_sample(audio, sentence):
             dropped += 1
