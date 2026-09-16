@@ -43,10 +43,16 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     """Pad log-mel features and labels separately; mask pad tokens with -100."""
 
     processor: WhisperProcessor
+    dtype: torch.dtype = torch.float32
 
     def __call__(self, features: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
         input_features = [{"input_features": f["input_features"]} for f in features]
         batch = self.processor.feature_extractor.pad(input_features, return_tensors="pt")
+        # The full profile loads Whisper weights natively in bf16 (no autocast),
+        # but this collator always produces float32 — mismatches the model's
+        # conv1 weights during predict_with_generate's eval-time generate() call
+        # (training's forward/backward is fine; only generate() hits this).
+        batch["input_features"] = batch["input_features"].to(self.dtype)
 
         label_features = [{"input_ids": f["labels"]} for f in features]
         labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
@@ -199,7 +205,9 @@ def main() -> None:
         model=model,
         train_dataset=dsd["train"],
         eval_dataset=dsd["validation"],
-        data_collator=DataCollatorSpeechSeq2SeqWithPadding(processor),
+        data_collator=DataCollatorSpeechSeq2SeqWithPadding(
+            processor, dtype=getattr(torch, cfg["model"]["torch_dtype"])
+        ),
         compute_metrics=build_compute_metrics(processor),
         processing_class=processor,
         callbacks=[
