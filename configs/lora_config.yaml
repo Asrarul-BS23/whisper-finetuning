@@ -1,14 +1,18 @@
 # LoRA hyperparameters. Debug values run on a Colab T4; full values on DGX Spark.
 # Only r / lora_alpha differ between the two profiles (see plan: "DGX Spark Full Run Changes").
 debug:
+  r: 32
+  lora_alpha: 64
+full:
   r: 64
   lora_alpha: 128
-full:
-  r: 128
-  lora_alpha: 256
 
 common:
-  target_modules: [q_proj, v_proj, k_proj, out_proj, fc1, fc2]
+  # fc1/fc2 (the wide feed-forward layers) dropped — they were most of the 13%
+  # trainable params and the likely source of overfitting on a ~9-10k sample
+  # corpus (train_loss ~0.001 while eval_wer stayed at 0.18). Attention-only is
+  # the standard, leaner LoRA setup (~1-3% trainable).
+  target_modules: [q_proj, v_proj, k_proj, out_proj]
   lora_dropout: 0.1
   bias: none
   # No task_type: SEQ_2_SEQ_LM routes PEFT to PeftModelForSeq2SeqLM, whose forward()
