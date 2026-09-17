@@ -31,7 +31,9 @@ def merge_adapter(base_model_id: str, adapter: str, merged_dir: Path) -> None:
     )
     merged = PeftModel.from_pretrained(base, adapter).merge_and_unload()
     merged.save_pretrained(str(merged_dir))
-    WhisperProcessor.from_pretrained(base_model_id).save_pretrained(str(merged_dir))
+    # use_fast=True — only the fast tokenizer's save_pretrained() writes
+    # tokenizer.json, which ct2-transformers-converter requires.
+    WhisperProcessor.from_pretrained(base_model_id, use_fast=True).save_pretrained(str(merged_dir))
     print(f"merged model → {merged_dir}")
 
 
