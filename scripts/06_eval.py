@@ -1,7 +1,11 @@
 """Evaluate the fine-tuned adapter on the test split.
 
-Reports overall WER plus WER on the code-switched slice (samples whose transcript
-mixes Bengali and Latin script), since that is the failure mode this run targets.
+Reports overall WER/CER plus WER/CER on the code-switched slice (samples whose
+transcript mixes Bengali and Latin script), since that is the failure mode this
+run targets. CER matters alongside WER for Bengali specifically — it's a
+morphologically rich script (conjuncts, matras), and WER penalizes a whole word
+even for a near-correct spelling; CER gives partial credit at the character
+level, so it separates minor spelling misses from real semantic errors.
 
 The base checkpoint comes from the profile (debug = whisper-small, full =
 large-v3) and must match the one the adapter was trained on — a LoRA adapter is
@@ -20,7 +24,7 @@ from pathlib import Path
 
 import torch
 from datasets import Audio, load_from_disk
-from jiwer import wer
+from jiwer import cer, wer
 from peft import PeftModel
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
@@ -57,18 +61,23 @@ def evaluate_model(model, processor, test_dataset, language: str, task: str) -> 
         references.append(sample["sentence"])
         cs_flags.append(is_code_switched(sample["sentence"]))
 
-    results = {"wer": wer(references, predictions), "n": len(references)}
+    results = {
+        "wer": wer(references, predictions),
+        "cer": cer(references, predictions),
+        "n": len(references),
+    }
     cs_ref = [r for r, f in zip(references, cs_flags) if f]
     cs_pred = [p for p, f in zip(predictions, cs_flags) if f]
     if cs_ref:
         results["wer_code_switched"] = wer(cs_ref, cs_pred)
+        results["cer_code_switched"] = cer(cs_ref, cs_pred)
         results["n_code_switched"] = len(cs_ref)
 
-    print(f"Overall WER: {results['wer']:.4f}  (n={results['n']})")
+    print(f"Overall WER: {results['wer']:.4f}  CER: {results['cer']:.4f}  (n={results['n']})")
     if "wer_code_switched" in results:
         print(
-            f"Code-switched WER: {results['wer_code_switched']:.4f} "
-            f"(n={results['n_code_switched']})"
+            f"Code-switched WER: {results['wer_code_switched']:.4f}  "
+            f"CER: {results['cer_code_switched']:.4f} (n={results['n_code_switched']})"
         )
     return results
 
