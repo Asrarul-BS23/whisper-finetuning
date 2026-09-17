@@ -19,6 +19,7 @@ import subprocess
 from pathlib import Path
 
 import torch
+from huggingface_hub import hf_hub_download
 from peft import PeftModel
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
@@ -31,9 +32,12 @@ def merge_adapter(base_model_id: str, adapter: str, merged_dir: Path) -> None:
     )
     merged = PeftModel.from_pretrained(base, adapter).merge_and_unload()
     merged.save_pretrained(str(merged_dir))
-    # use_fast=True — only the fast tokenizer's save_pretrained() writes
-    # tokenizer.json, which ct2-transformers-converter requires.
-    WhisperProcessor.from_pretrained(base_model_id, use_fast=True).save_pretrained(str(merged_dir))
+    WhisperProcessor.from_pretrained(base_model_id).save_pretrained(str(merged_dir))
+    # WhisperProcessor.save_pretrained() doesn't reliably re-emit tokenizer.json
+    # (a transformers serialization quirk) even though the base repo has one —
+    # ct2-transformers-converter requires it, so fetch it directly from the Hub.
+    tokenizer_json = hf_hub_download(base_model_id, filename="tokenizer.json")
+    shutil.copy(tokenizer_json, merged_dir / "tokenizer.json")
     print(f"merged model → {merged_dir}")
 
 
