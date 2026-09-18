@@ -14,6 +14,8 @@ not portable between Whisper sizes.
 Usage:
     python scripts/06_eval.py --adapter outputs/whisper-bangla-lora-debug --limit 10
     python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora
+    python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora \
+        --out-json outputs/metrics/full.json --mlflow-experiment whisper-bangla-eval
 """
 from __future__ import annotations
 
@@ -82,6 +84,35 @@ def evaluate_model(model, processor, test_dataset, language: str, task: str) -> 
     return results
 
 
+def log_to_mlflow(results: dict, experiment: str | None, run_id: str | None) -> None:
+    """Mirror the results into MLflow, where the training curves already live.
+
+    Imported lazily so the eval path doesn't require mlflow unless it's asked for.
+    """
+    import mlflow
+
+    if experiment and not run_id:
+        mlflow.set_experiment(experiment)
+
+    # Prefixed test_* so these don't collide with the eval_* series the trainer
+    # logged during training, when appending to an existing run.
+    metrics = {
+        f"test_{key}": float(value)
+        for key, value in results.items()
+        if isinstance(value, (int, float))
+    }
+    params = {
+        key: str(results[key]) or "none (baseline)"
+        for key in ("base_model_id", "adapter", "split")
+        if key in results
+    }
+
+    with mlflow.start_run(run_id=run_id):
+        mlflow.log_params(params)
+        mlflow.log_metrics(metrics)
+    print(f"mlflow → {'run ' + run_id if run_id else 'experiment ' + experiment}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default=None, help="omit to score the untuned baseline")
@@ -93,6 +124,16 @@ def main() -> None:
         "--model", default=None, help="override the profile's checkpoint (must match --adapter)"
     )
     parser.add_argument("--out-json", default=None, help="write metrics to this path (for DVC)")
+    parser.add_argument(
+        "--mlflow-experiment",
+        default=None,
+        help="log results to this MLflow experiment (omit to skip MLflow entirely)",
+    )
+    parser.add_argument(
+        "--mlflow-run-id",
+        default=None,
+        help="append to this existing MLflow run instead of starting a new one",
+    )
     args = parser.parse_args()
 
     cfg, _ = load_configs(debug=not args.full, model_override=args.model)
@@ -124,6 +165,9 @@ def main() -> None:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(results, indent=2), encoding="utf-8")
         print(f"metrics → {out}")
+
+    if args.mlflow_experiment or args.mlflow_run_id:
+        log_to_mlflow(results, args.mlflow_experiment, args.mlflow_run_id)
 
 
 if __name__ == "__main__":
