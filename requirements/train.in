@@ -47,4 +47,5 @@ huggingface_hub>=0.30.0,<1.0
 PyYAML==6.0.2
 mlflow==2.20.3
 tensorboard==2.19.0
+matplotlib==3.10.0             # 08_plot_runs.py only
 dvc[gdrive]==3.59.1

@@ -14,10 +14,18 @@ not portable between Whisper sizes.
 Usage:
     python scripts/06_eval.py --adapter outputs/whisper-bangla-lora-debug --limit 10
     python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora
+<<<<<<< Updated upstream
+=======
+    python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora \
+        --out-json outputs/metrics/full.json --mlflow-experiment whisper-bangla-eval
+    python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora \
+        --dump-predictions outputs/metrics/full-predictions.csv     # read the transcripts
+>>>>>>> Stashed changes
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 from pathlib import Path
@@ -47,8 +55,11 @@ def load_eval_model(base_model_id: str, adapter: str | None, dtype: torch.dtype)
     return model.eval()
 
 
-def evaluate_model(model, processor, test_dataset, language: str, task: str) -> dict[str, float]:
-    predictions, references, cs_flags = [], [], []
+def evaluate_model(
+    model, processor, test_dataset, language: str, task: str
+) -> tuple[dict[str, float], list[dict]]:
+    """Score the split; returns the aggregate metrics and the per-sample rows."""
+    predictions, references, cs_flags, sources = [], [], [], []
     for sample in test_dataset:
         features = processor(
             sample["audio"]["array"], sampling_rate=TARGET_SR, return_tensors="pt"
@@ -60,6 +71,7 @@ def evaluate_model(model, processor, test_dataset, language: str, task: str) -> 
         )
         references.append(sample["sentence"])
         cs_flags.append(is_code_switched(sample["sentence"]))
+        sources.append(sample.get("source", ""))
 
     results = {
         "wer": wer(references, predictions),
@@ -79,7 +91,40 @@ def evaluate_model(model, processor, test_dataset, language: str, task: str) -> 
             f"Code-switched WER: {results['wer_code_switched']:.4f}  "
             f"CER: {results['cer_code_switched']:.4f} (n={results['n_code_switched']})"
         )
-    return results
+
+    # Per-sample WER/CER so the dump can be sorted worst-first for error analysis.
+    rows = [
+        {
+            "index": i,
+            "source": source,
+            "code_switched": int(flag),
+            "wer": wer([reference], [prediction]),
+            "cer": cer([reference], [prediction]),
+            "reference": reference,
+            "prediction": prediction,
+        }
+        for i, (reference, prediction, flag, source) in enumerate(
+            zip(references, predictions, cs_flags, sources)
+        )
+    ]
+    return results, rows
+
+
+def dump_predictions(rows: list[dict], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # utf-8-sig so Excel renders the Bengali text instead of mojibake.
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"predictions → {path}")
+
+    worst = sorted(rows, key=lambda r: r["wer"], reverse=True)[:5]
+    print("\nworst 5 by WER:")
+    for row in worst:
+        print(f"  [{row['index']}] wer={row['wer']:.2f} src={row['source']}")
+        print(f"    ref : {row['reference']}")
+        print(f"    pred: {row['prediction']}")
 
 
 def main() -> None:
@@ -93,6 +138,24 @@ def main() -> None:
         "--model", default=None, help="override the profile's checkpoint (must match --adapter)"
     )
     parser.add_argument("--out-json", default=None, help="write metrics to this path (for DVC)")
+<<<<<<< Updated upstream
+=======
+    parser.add_argument(
+        "--dump-predictions",
+        default=None,
+        help="write per-sample reference/prediction pairs to this CSV",
+    )
+    parser.add_argument(
+        "--mlflow-experiment",
+        default=None,
+        help="log results to this MLflow experiment (omit to skip MLflow entirely)",
+    )
+    parser.add_argument(
+        "--mlflow-run-id",
+        default=None,
+        help="append to this existing MLflow run instead of starting a new one",
+    )
+>>>>>>> Stashed changes
     args = parser.parse_args()
 
     cfg, _ = load_configs(debug=not args.full, model_override=args.model)
@@ -114,10 +177,15 @@ def main() -> None:
         args.adapter,
         getattr(torch, cfg["model"]["torch_dtype"]),
     )
-    results = evaluate_model(model, processor, ds, cfg["model"]["language"], cfg["model"]["task"])
+    results, rows = evaluate_model(
+        model, processor, ds, cfg["model"]["language"], cfg["model"]["task"]
+    )
     results["base_model_id"] = cfg["model"]["base_model_id"]
     results["adapter"] = args.adapter or ""
     results["split"] = args.split
+
+    if args.dump_predictions:
+        dump_predictions(rows, Path(args.dump_predictions))
 
     if args.out_json:
         out = Path(args.out_json)
