@@ -14,13 +14,10 @@ not portable between Whisper sizes.
 Usage:
     python scripts/06_eval.py --adapter outputs/whisper-bangla-lora-debug --limit 10
     python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora
-<<<<<<< Updated upstream
-=======
     python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora \
         --out-json outputs/metrics/full.json --mlflow-experiment whisper-bangla-eval
     python scripts/06_eval.py --full --adapter outputs/whisper-bangla-lora \
         --dump-predictions outputs/metrics/full-predictions.csv     # read the transcripts
->>>>>>> Stashed changes
 """
 from __future__ import annotations
 
@@ -138,8 +135,6 @@ def main() -> None:
         "--model", default=None, help="override the profile's checkpoint (must match --adapter)"
     )
     parser.add_argument("--out-json", default=None, help="write metrics to this path (for DVC)")
-<<<<<<< Updated upstream
-=======
     parser.add_argument(
         "--dump-predictions",
         default=None,
@@ -155,7 +150,6 @@ def main() -> None:
         default=None,
         help="append to this existing MLflow run instead of starting a new one",
     )
->>>>>>> Stashed changes
     args = parser.parse_args()
 
     cfg, _ = load_configs(debug=not args.full, model_override=args.model)
